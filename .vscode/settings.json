@@ -1,0 +1,6 @@
+{
+    "terminal.integrated.env.linux": {
+        "PATH": "/home/chris/.platformio/penv/bin:/home/chris/.platformio/penv:/home/linuxbrew/.linuxbrew/bin:/home/chris/.ndenv/shims:/home/chris/.ndenv/bin:/home/chris/.cargo/bin:/home/chris/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/lib/jvm/java-8-oracle/bin:/usr/lib/jvm/java-8-oracle/db/bin:/usr/lib/jvm/java-8-oracle/jre/bin:/home/chris/go/bin:/usr/lib/go/bin:/home/chris/.fzf/bin",
+        "PLATFORMIO_CALLER": "vscode"
+    }
+}
