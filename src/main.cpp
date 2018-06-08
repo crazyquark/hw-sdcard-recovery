@@ -171,10 +171,52 @@ void printCardType()
 }
 //------------------------------------------------------------------------------
 
+//------------------------------------------------------------------------------
+bool mbrDmp()
+{
+    MbrSector_t mbr;
+    bool valid = true;
+    if (!sd.card()->readSector(0, (uint8_t *)&mbr))
+    {
+        cout << F("\nread MBR failed.\n");
+        return false;
+    }
+    cout << F("\nSD Partition Table\n");
+    cout << F("part,boot,bgnCHS[3],type,endCHS[3],start,length\n");
+    for (uint8_t ip = 1; ip < 5; ip++)
+    {
+        MbrPart_t *pt = &mbr.part[ip - 1];
+        if ((pt->boot != 0 && pt->boot != 0X80) ||
+            getLe32(pt->relativeSectors) > sdCardCapacity(&m_csd))
+        {
+            valid = false;
+        }
+        cout << int(ip) << ',' << uppercase << showbase << hex;
+        cout << int(pt->boot) << ',';
+        for (int i = 0; i < 3; i++)
+        {
+            cout << int(pt->beginCHS[i]) << ',';
+        }
+        cout << int(pt->type) << ',';
+        for (int i = 0; i < 3; i++)
+        {
+            cout << int(pt->endCHS[i]) << ',';
+        }
+        cout << dec << getLe32(pt->relativeSectors) << ',';
+        cout << getLe32(pt->totalSectors) << endl;
+    }
+    if (!valid)
+    {
+        cout << F("\nMBR not valid, assuming Super Floppy format.\n");
+    }
+    return true;
+}
+//------------------------------------------------------------------------------
+
 void setup()
 {
     lcd.clear();
-    lcd.print("Init...");
+    lcd.print("Waiting");
 
     Serial.begin(9600);
     // Wait for USB Serial
@@ -186,6 +228,27 @@ void setup()
 
     lcd.clear();
     lcd.print("Serial");
+}
+
+void readSector(int n)
+{
+    lcd.clear();
+    lcd.print("Read ");
+    lcd.print(n);
+
+    uint8_t value;
+    bool success = sd.card()->readSector(0, &value);
+    if (!success)
+    {
+        lcd.clear();
+        lcd.print("Err ");
+        lcd.print(n);
+
+        cout << "Failed to read sector " << n << endl;
+        return;
+    }
+
+    cout << "Read: " << value << endl;
 }
 
 void loop()
@@ -235,16 +298,15 @@ void loop()
         return;
     }
     printCardType();
+    
     cidDmp();
     csdDmp();
     cout << F("\nOCR: ") << uppercase << showbase;
     cout << hex << m_ocr << dec << endl;
-    // mbrDmp();
-    // if (!sd.volumeBegin())
-    // {
-    //     cout << F("\nvolumeBegin failed. Is the card formatted?\n");
-    //     errorPrint();
-    //     return;
-    // }
-    // dmpVol();
+
+    mbrDmp();
+    
+    for (int i = 0; i < 1000; i++) {
+        readSector(i);
+    }
 }
