@@ -294,11 +294,11 @@ void setup()
 
     pinMode(2, OUTPUT); // frequency is kbytes/sec
 
-    Serial.begin(115200);
-    // Wait for USB Serial
+    Serial.begin(12000000);
 
     digitalWrite(ledPin, HIGH); // set the LED on
 
+    // Wait for USB Serial
     while (!Serial)
     {
         SysCall::yield();
