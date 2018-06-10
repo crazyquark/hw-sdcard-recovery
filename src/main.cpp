@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include <SdFs.h>
-#include <Ethernet.h>
 #include <FreeStack.h>
 
 /*
@@ -8,7 +7,7 @@
   For example, with the Ethernet shield, set DISABLE_CS_PIN
   to 10 to disable the Ethernet controller.
 */
-const int8_t DISABLE_CS_PIN = 10;
+const int8_t DISABLE_CS_PIN = -1;
 /*
   Change the value of SD_CS_PIN if you are using SPI
   and your hardware does not use the default value, SS.  
@@ -17,10 +16,10 @@ const int8_t DISABLE_CS_PIN = 10;
   Sparkfun SD shield: pin 8
   Adafruit SD shields and modules: pin 10
 */
-const uint8_t SD_CS_PIN = 4;
+const uint8_t SD_CS_PIN = 10;
 
-// Try to select the best SD card configuration.
-#define SD_CONFIG SdSpiConfig(SD_CS_PIN, SHARED_SPI)
+// Teensy uses SDIO for SD cards
+#define SD_CONFIG SdioConfig(FIFO_SDIO)
 
 // To send EOF and other things
 #define CTRL(x) ('x' & 0x1F)
@@ -35,22 +34,6 @@ uint32_t m_ocr;
 static ArduinoOutStream cout(Serial);
 //------------------------------------------------------------------------------
 
-//------------------------------------------------------------------------------
-// Enter a MAC address and IP address for your controller below.
-// The IP address will be dependent on your local network.
-// gateway and subnet are optional:
-byte mac[] = {
-    0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
-IPAddress ip(192, 168, 1, 177);
-IPAddress myDns(192, 168, 1, 1);
-IPAddress gateway(192, 168, 1, 1);
-IPAddress subnet(255, 255, 0, 0);
-
-// telnet defaults to port 23
-EthernetServer server(23);
-boolean alreadyConnected = false; // whether or not the client was connected previously
-//------------------------------------------------------------------------------
-
 void errorPrint()
 {
     if (sd.sdErrorCode())
@@ -62,23 +45,10 @@ void errorPrint()
     }
 }
 
-void printConfig(SdSpiConfig config)
+void printConfig(const SdioConfig& config)
 {
-    if (DISABLE_CS_PIN < 0)
-    {
-        cout << F(
-            "\nAssuming the SD is the only SPI device.\n"
-            "Edit DISABLE_CS_PIN to disable an SPI device.\n");
-    }
-    else
-    {
-        cout << F("\nDisabling SPI device on pin ");
-        cout << int(DISABLE_CS_PIN) << endl;
-        pinMode(DISABLE_CS_PIN, OUTPUT);
-        digitalWrite(DISABLE_CS_PIN, HIGH);
-    }
-    cout << F("\nAssuming the SD chip select pin is: ") << int(config.csPin);
-    cout << F("\nEdit SD_CS_PIN to change the SD chip select pin.\n");
+  (void)config;
+  cout << F("Assuming an SDIO interface.\n");
 }
 
 //------------------------------------------------------------------------------
@@ -264,19 +234,6 @@ void sdInfo()
     cout << F("---------------------------------------\n");
 }
 
-void startEthernetServer()
-{
-    // initialize the ethernet device
-    Ethernet.begin(mac, ip, myDns, gateway, subnet);
-    // start listening for clients
-    server.begin();
-
-    cout << F("-------------SERVER---------------------\n");
-    cout << F("Server address:");
-    Serial.print(Ethernet.localIP());
-    cout << F("\n----------------------------------------\n");
-}
-
 void setup()
 {
     Serial.begin(9600);
@@ -288,46 +245,10 @@ void setup()
 
     sdInfo();
 
-    startEthernetServer();
-
     // Available memory
     cout << F("Free stack: ") << FreeStack() << endl;
 }
 
-void runServer()
-{
-    // wait for a new client:
-    EthernetClient client = server.available();
-
-    // when the client sends the first byte, say hello:
-    if (client)
-    {
-        if (!alreadyConnected)
-        {
-            // clear out the input buffer:
-            client.flush();
-            cout << F("We have a new client") << endl;
-            alreadyConnected = true;
-        }
-
-        // Send raw sd card data
-        cout << F("Reading ") << m_noSectors << F(" sectors\n");
-        for (uint32_t i = 0; i < m_noSectors; i++)
-        {
-            uint8_t rawData[512];
-            sd.card()->readSectors(i, rawData, 1);
-            server.write(rawData, sizeof(rawData));
-
-            cout << F("Read ") << setprecision(4) << float(i) / float(m_noSectors) << F(" %\r");
-        }
-        cout << endl;
-
-        client.stop();
-    }
-
-}
-
 void loop()
 {
-    runServer();
 }
