@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <SdFs.h>
 #include <Ethernet.h>
+#include <FreeStack.h>
 
 /*
   Set DISABLE_CS_PIN to disable a second SPI device.
@@ -145,7 +146,6 @@ bool csdDmp()
 
 void printCardType()
 {
-
     cout << F("\nCard type: ");
 
     switch (sd.card()->type())
@@ -289,6 +289,9 @@ void setup()
     sdInfo();
 
     startEthernetServer();
+
+    // Available memory
+    cout << F("Free stack: ") << FreeStack() << endl;
 }
 
 void runServer()
@@ -308,14 +311,14 @@ void runServer()
         }
 
         // Send raw sd card data
-        cout << "Reading " << m_noSectors << " sectors\n";
+        cout << F("Reading ") << m_noSectors << F(" sectors\n");
         for (uint32_t i = 0; i < m_noSectors; i++)
         {
             uint8_t rawData[512];
             sd.card()->readSectors(i, rawData, 1);
             server.write(rawData, sizeof(rawData));
 
-            cout << "Read " << i << "/" << m_noSectors << "\r";
+            cout << F("Read ") << int(i / m_noSectors) << F(" %\r");
         }
         cout << endl;
 
