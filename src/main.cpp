@@ -1,10 +1,3 @@
-// Set to 1 to use A-Star32U4 functions
-#define ASTAR 0
-
-#include <Arduino.h>
-#if ASTAR
-#include <AStar32U4.h>
-#endif
 #include <SdFs.h>
 
 /*
@@ -12,7 +5,7 @@
   For example, with the Ethernet shield, set DISABLE_CS_PIN
   to 10 to disable the Ethernet controller.
 */
-const int8_t DISABLE_CS_PIN = 10;
+const int8_t DISABLE_CS_PIN = -1;
 /*
   Change the value of SD_CS_PIN if you are using SPI
   and your hardware does not use the default value, SS.  
@@ -21,21 +14,10 @@ const int8_t DISABLE_CS_PIN = 10;
   Sparkfun SD shield: pin 8
   Adafruit SD shields and modules: pin 10
 */
-// SDCARD_SS_PIN is defined for the built-in SD on some boards.
-const uint8_t SD_CS_PIN = 10; // SS;
+const uint8_t SD_CS_PIN = 4;
 
 // Try to select the best SD card configuration.
 #define SD_CONFIG SdSpiConfig(SD_CS_PIN, SHARED_SPI)
-
-//------------------------------------------------------------------------------
-#if ASTAR
-AStar32U4LCD lcd;
-AStar32U4Buzzer buzzer;
-AStar32U4ButtonA buttonA;
-AStar32U4ButtonB buttonB;
-AStar32U4ButtonC buttonC;
-#endif
-//------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------
 SdFs sd;
@@ -212,11 +194,6 @@ bool mbrDmp()
 
 void setup()
 {
-#if ASTAR
-    lcd.clear();
-    lcd.print("Waiting");
-#endif
-
     Serial.begin(9600);
     // Wait for USB Serial
     while (!Serial)
@@ -224,29 +201,14 @@ void setup()
         SysCall::yield();
     }
     printConfig(SD_CONFIG);
-
-#if ASTAR
-    lcd.clear();
-    lcd.print("Serial");
-#endif
 }
 
 void readSector(int n)
 {
-#if ASTAR
-    lcd.clear();
-    lcd.print("Read ");
-    lcd.print(n);
-#endif
     uint8_t value;
     bool success = sd.card()->readSector(0, &value);
     if (!success)
     {
-#if ASTAR
-        lcd.clear();
-        lcd.print("Err ");
-        lcd.print(n);
-#endif
         cout << "Failed to read sector " << n << endl;
         return;
     }
@@ -256,10 +218,6 @@ void readSector(int n)
 
 void sdInfo()
 {
-#if ASTAR
-    lcd.clear();
-    lcd.print("SD nfo");
-#endif
     uint32_t t = millis();
 
     if (!sd.cardBegin(SD_CONFIG))
