@@ -260,9 +260,12 @@ void dumpSdCardToSerial()
     const uint32_t bytesToWrite = m_noSectors * 512;
     const uint32_t chunkSize = 420;
 
-    Serial.write((uint8_t*)&bytesToWrite, 4);
+    Serial.write((uint8_t *)&bytesToWrite, 4);
 
-    for (uint32_t i = 0; i < m_noSectors; i += chunkSize)
+    const uint32_t noChunks = int(m_noSectors / chunkSize);
+    const uint32_t lastChunk = m_noSectors % chunkSize;
+
+    for (uint32_t i = 0; i < noChunks; i += chunkSize)
     {
         digitalWrite(ledPin, HIGH); // set the LED on
 
@@ -277,6 +280,15 @@ void dumpSdCardToSerial()
         cout << "Read " << i << "/" << m_noSectors << endl;
 #endif
     }
+
+    digitalWrite(ledPin, HIGH); // set the LED on
+
+    uint8_t buffer[lastChunk * 512];
+    sd.card()->readSectors(noChunks * chunkSize, buffer, lastChunk);
+
+    Serial.write(buffer, sizeof(buffer));
+
+    digitalWrite(ledPin, LOW); // set the LED off
 
 #if DEBUG
     cout << F("Done!") << endl;

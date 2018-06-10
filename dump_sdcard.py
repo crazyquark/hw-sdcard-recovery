@@ -2,6 +2,7 @@
 import serial
 import struct
 import sys
+from time import time
 
 chunkSize = 512*420
 
@@ -11,6 +12,7 @@ with open('sdcard.img', 'wb') as img:
         print ('Expecting ' + str(dataLength) + ' bytes')
 
         bytesRead = 0
+        startTime = int(time())
         while True:
             bytes = bytearray(ser.read(chunkSize))
 
@@ -22,7 +24,11 @@ with open('sdcard.img', 'wb') as img:
 
             bytesRead += count
 
-            sys.stdout.write('Progress: ' + str(round(float(bytesRead) / float(dataLength), 2)) + ' %')
+            currentTime = int(time())
+
+            speed = round(float(bytesRead) / 1024.0 / float(currentTime - startTime), 2)
+
+            sys.stdout.write('Progress: ' + str(round(float(bytesRead) / float(dataLength), 2)) + ' % [' + str(speed) + 'KB/s]')
             sys.stdout.write('\r')
 
 
