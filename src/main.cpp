@@ -318,7 +318,7 @@ void runServer()
             sd.card()->readSectors(i, rawData, 1);
             server.write(rawData, sizeof(rawData));
 
-            cout << F("Read ") << int(i / m_noSectors) << F(" %\r");
+            cout << F("Read ") << setprecision(4) << float(i) / float(m_noSectors) << F(" %\r");
         }
         cout << endl;
 
