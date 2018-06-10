@@ -14,7 +14,11 @@ with open('sdcard.img', 'wb') as img:
         bytesRead = 0
         startTime = int(time())
         while True:
-            bytes = bytearray(ser.read(chunkSize))
+            try:
+                bytes = bytearray(ser.read(chunkSize))
+            except:
+                print('Connection finished')
+                break
 
             count = len(bytes)
             if count == 0:
@@ -31,4 +35,11 @@ with open('sdcard.img', 'wb') as img:
             sys.stdout.write('Progress: ' + str(round(float(bytesRead) / float(dataLength), 2)) + ' % [' + str(speed) + 'KB/s]')
             sys.stdout.write('\r')
 
+        if bytesRead != dataLength:
+            print('Data lost!')
+
+        currentTime = int(time())
+        print('Total time: ' + str(currentTime - startTime))
+        speed = round(float(bytesRead) / 1024.0 / float(currentTime - startTime), 2)
+        print('Average speed: ' + str(speed))
 
