@@ -1,11 +1,13 @@
+#include <Arduino.h>
 #include <SdFs.h>
+#include <Ethernet.h>
 
 /*
   Set DISABLE_CS_PIN to disable a second SPI device.
   For example, with the Ethernet shield, set DISABLE_CS_PIN
   to 10 to disable the Ethernet controller.
 */
-const int8_t DISABLE_CS_PIN = -1;
+const int8_t DISABLE_CS_PIN = 10;
 /*
   Change the value of SD_CS_PIN if you are using SPI
   and your hardware does not use the default value, SS.  
@@ -26,6 +28,22 @@ csd_t m_csd;
 uint32_t m_eraseSize;
 uint32_t m_ocr;
 static ArduinoOutStream cout(Serial);
+//------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------
+// Enter a MAC address and IP address for your controller below.
+// The IP address will be dependent on your local network.
+// gateway and subnet are optional:
+byte mac[] = {
+    0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
+IPAddress ip(192, 168, 1, 177);
+IPAddress myDns(192, 168, 1, 1);
+IPAddress gateway(192, 168, 1, 1);
+IPAddress subnet(255, 255, 0, 0);
+
+// telnet defaults to port 23
+EthernetServer server(23);
+boolean alreadyConnected = false; // whether or not the client was connected previously
 //------------------------------------------------------------------------------
 
 void errorPrint()
@@ -103,6 +121,7 @@ bool csdDmp()
     m_eraseSize++;
     cout << F("cardSize: ") << 0.000512 * sdCardCapacity(&m_csd);
     cout << F(" MB (MB = 1,000,000 bytes)\n");
+    cout << F("sectors: ") << sdCardCapacity(&m_csd) << endl;
 
     cout << F("flashEraseSize: ") << int(m_eraseSize) << F(" blocks\n");
     cout << F("eraseSingleBlock: ");
@@ -192,17 +211,6 @@ bool mbrDmp()
 }
 //------------------------------------------------------------------------------
 
-void setup()
-{
-    Serial.begin(9600);
-    // Wait for USB Serial
-    while (!Serial)
-    {
-        SysCall::yield();
-    }
-    printConfig(SD_CONFIG);
-}
-
 void readSector(int n)
 {
     uint8_t value;
@@ -219,6 +227,10 @@ void readSector(int n)
 void sdInfo()
 {
     uint32_t t = millis();
+
+    cout << F("------------------SD-------------------\n");
+
+    printConfig(SD_CONFIG);
 
     if (!sd.cardBegin(SD_CONFIG))
     {
@@ -255,20 +267,67 @@ void sdInfo()
     cout << hex << m_ocr << dec << endl;
 
     mbrDmp();
+
+    cout << F("---------------------------------------\n");
+}
+
+void startEthernetServer()
+{
+    // initialize the ethernet device
+    Ethernet.begin(mac, ip, myDns, gateway, subnet);
+    // start listening for clients
+    server.begin();
+
+    cout << F("-------------SERVER---------------------\n");
+    cout << F("Server address:");
+    Serial.print(Ethernet.localIP());
+    cout << F("\n----------------------------------------\n");
+}
+
+void setup()
+{
+    Serial.begin(9600);
+    // Wait for USB Serial
+    while (!Serial)
+    {
+        SysCall::yield();
+    }
+
+    sdInfo();
+
+    startEthernetServer();
+}
+
+void runServer()
+{
+    // wait for a new client:
+    EthernetClient client = server.available();
+
+    // when the client sends the first byte, say hello:
+    if (client)
+    {
+        if (!alreadyConnected)
+        {
+            // clear out the input buffer:
+            client.flush();
+            Serial.println("We have a new client");
+            client.println("Hello, client!");
+            alreadyConnected = true;
+        }
+
+        if (client.available() > 0)
+        {
+            // read the bytes incoming from the client:
+            char thisChar = client.read();
+            // echo the bytes back to the client:
+            server.write(thisChar);
+            // echo the bytes to the server as well:
+            Serial.write(thisChar);
+        }
+    }
 }
 
 void loop()
 {
-    // Read any existing Serial data.
-    do
-    {
-        delay(10);
-    } while (Serial.available() && Serial.read() >= 0);
-
-    // F stores strings in flash to save RAM
-    cout << F("\ntype any character to start\n");
-    while (!Serial.available())
-    {
-        SysCall::yield();
-    }
+    runServer();
 }
