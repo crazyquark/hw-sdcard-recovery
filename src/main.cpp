@@ -271,6 +271,8 @@ void setup()
     // initialize the digital pin as an output.
     pinMode(ledPin, OUTPUT);
 
+    pinMode(2, OUTPUT);  // frequency is kbytes/sec
+
     Serial.begin(115200);
     // Wait for USB Serial
 
