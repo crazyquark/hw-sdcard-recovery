@@ -260,7 +260,7 @@ void dumpSdCardToSerial()
     const uint32_t bytesToWrite = m_noSectors * 512;
     const uint32_t chunkSize = 420;
 
-    Serial.write(bytesToWrite);
+    Serial.write((uint8_t*)&bytesToWrite, 4);
 
     for (uint32_t i = 0; i < m_noSectors; i += chunkSize)
     {

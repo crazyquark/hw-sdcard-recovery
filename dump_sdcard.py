@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 import serial
 import struct
+import sys
 
 chunkSize = 420 * 512
 
 with open('sdcard.img', 'wb') as img:
     with serial.Serial('/dev/ttyACM0', 115200, timeout=1) as ser:
-        dataLength = ser.read(4)
-        print ('Expecting ' + dataLength + ' bytes')
+        dataLength = int.from_bytes(ser.read(4), byteorder='little', signed=False)
+        print ('Expecting ' + str(dataLength) + ' bytes')
 
+        bytesRead = 0
         while True:
             bytes = bytearray(ser.read(chunkSize))
 
@@ -18,6 +20,9 @@ with open('sdcard.img', 'wb') as img:
             
             img.write(bytes)
 
-            print ('Wrote ' +  str(count) + ' bytes')
+            bytesRead += count
+
+            sys.stdout.write('Progress: ' + str(round(float(bytesRead) / float(dataLength), 2)) + ' %')
+            sys.stdout.write('\r')
 
 
