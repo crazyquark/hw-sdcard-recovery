@@ -24,6 +24,11 @@ const uint8_t SD_CS_PIN = 10;
 // To send EOF and other things
 #define CTRL(x) ('x' & 0x1F)
 
+// Teensy 2.0 has the LED on pin 11
+// Teensy++ 2.0 has the LED on pin 6
+// Teensy 3.x / Teensy LC have the LED on pin 13
+const int ledPin = 13;
+
 //------------------------------------------------------------------------------
 SdFs sd;
 cid_t m_cid;
@@ -45,10 +50,10 @@ void errorPrint()
     }
 }
 
-void printConfig(const SdioConfig& config)
+void printConfig(const SdioConfig &config)
 {
-  (void)config;
-  cout << F("Assuming an SDIO interface.\n");
+    (void)config;
+    cout << F("Assuming an SDIO interface.\n");
 }
 
 //------------------------------------------------------------------------------
@@ -94,7 +99,7 @@ bool csdDmp()
         return false;
     }
     m_eraseSize++;
-    
+
     m_noSectors = sdCardCapacity(&m_csd);
     cout << F("cardSize: ") << 0.000512 * m_noSectors;
     cout << F(" MB (MB = 1,000,000 bytes)\n");
@@ -234,19 +239,55 @@ void sdInfo()
     cout << F("---------------------------------------\n");
 }
 
+void dumpSdCardToSerial()
+{
+    cout << F("Sector to read: ") << m_noSectors << endl;
+    const int chunkSize = 420;
+    for (uint32_t i = 0; i < m_noSectors; i += chunkSize)
+    {
+        digitalWrite(ledPin, HIGH); // set the LED on
+
+        uint8_t buffer[512 * chunkSize];
+        sd.card()->readSectors(i, buffer, chunkSize);
+
+        Serial.write(buffer, sizeof(buffer));
+
+        digitalWrite(ledPin, LOW); // set the LED off
+
+        cout << "Read " << i << "/" << m_noSectors << endl;
+    }
+
+    Serial.write(CTRL(D));
+
+    cout << F("Done!") << endl;
+
+    Serial.end();
+
+    digitalWrite(ledPin, LOW); // set the LED on
+}
+
 void setup()
 {
-    Serial.begin(9600);
+    // initialize the digital pin as an output.
+    pinMode(ledPin, OUTPUT);
+
+    Serial.begin(115200);
     // Wait for USB Serial
+
+    digitalWrite(ledPin, HIGH); // set the LED on
+
     while (!Serial)
     {
         SysCall::yield();
     }
+    digitalWrite(ledPin, LOW); // set the LED off
 
     sdInfo();
 
     // Available memory
     cout << F("Free stack: ") << FreeStack() << endl;
+
+    dumpSdCardToSerial();
 }
 
 void loop()
