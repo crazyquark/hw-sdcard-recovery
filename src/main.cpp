@@ -21,11 +21,15 @@ const uint8_t SD_CS_PIN = 4;
 // Try to select the best SD card configuration.
 #define SD_CONFIG SdSpiConfig(SD_CS_PIN, SHARED_SPI)
 
+// To send EOF and other things
+#define CTRL(x) ('x' & 0x1F)
+
 //------------------------------------------------------------------------------
 SdFs sd;
 cid_t m_cid;
 csd_t m_csd;
 uint32_t m_eraseSize;
+uint32_t m_noSectors;
 uint32_t m_ocr;
 static ArduinoOutStream cout(Serial);
 //------------------------------------------------------------------------------
@@ -119,9 +123,11 @@ bool csdDmp()
         return false;
     }
     m_eraseSize++;
-    cout << F("cardSize: ") << 0.000512 * sdCardCapacity(&m_csd);
+    
+    m_noSectors = sdCardCapacity(&m_csd);
+    cout << F("cardSize: ") << 0.000512 * m_noSectors;
     cout << F(" MB (MB = 1,000,000 bytes)\n");
-    cout << F("sectors: ") << sdCardCapacity(&m_csd) << endl;
+    cout << F("sectors: ") << m_noSectors << endl;
 
     cout << F("flashEraseSize: ") << int(m_eraseSize) << F(" blocks\n");
     cout << F("eraseSingleBlock: ");
@@ -211,19 +217,6 @@ bool mbrDmp()
 }
 //------------------------------------------------------------------------------
 
-void readSector(int n)
-{
-    uint8_t value;
-    bool success = sd.card()->readSector(0, &value);
-    if (!success)
-    {
-        cout << "Failed to read sector " << n << endl;
-        return;
-    }
-
-    cout << "Read: " << value << endl;
-}
-
 void sdInfo()
 {
     uint32_t t = millis();
@@ -310,21 +303,25 @@ void runServer()
         {
             // clear out the input buffer:
             client.flush();
-            Serial.println("We have a new client");
-            client.println("Hello, client!");
+            cout << F("We have a new client") << endl;
             alreadyConnected = true;
         }
 
-        if (client.available() > 0)
+        // Send raw sd card data
+        cout << "Reading " << m_noSectors << " sectors\n";
+        for (uint32_t i = 0; i < m_noSectors; i++)
         {
-            // read the bytes incoming from the client:
-            char thisChar = client.read();
-            // echo the bytes back to the client:
-            server.write(thisChar);
-            // echo the bytes to the server as well:
-            Serial.write(thisChar);
+            uint8_t rawData[512];
+            sd.card()->readSectors(i, rawData, 1);
+            server.write(rawData, sizeof(rawData));
+
+            cout << "Read " << i << "/" << m_noSectors << "\r";
         }
+        cout << endl;
+
+        client.stop();
     }
+
 }
 
 void loop()
