@@ -2,6 +2,9 @@
 #include <SdFs.h>
 #include <FreeStack.h>
 
+// Disable debug info
+#define DEBUG 0
+
 /*
   Set DISABLE_CS_PIN to disable a second SPI device.
   For example, with the Ethernet shield, set DISABLE_CS_PIN
@@ -52,8 +55,10 @@ void errorPrint()
 
 void printConfig(const SdioConfig &config)
 {
+#if DEBUG
     (void)config;
     cout << F("Assuming an SDIO interface.\n");
+#endif
 }
 
 //------------------------------------------------------------------------------
@@ -61,6 +66,7 @@ void printConfig(const SdioConfig &config)
 //------------------------------------------------------------------------------
 bool cidDmp()
 {
+#if DEBUG
     cout << F("\nManufacturer ID: ");
     cout << uppercase << showbase << hex << int(m_cid.mid) << dec << endl;
     cout << F("OEM ID: ") << m_cid.oid[0] << m_cid.oid[1] << endl;
@@ -76,6 +82,7 @@ bool cidDmp()
     cout << int(m_cid.mdt_month) << '/';
     cout << (2000 + m_cid.mdt_year_low + 10 * m_cid.mdt_year_high) << endl;
     cout << endl;
+#endif
     return true;
 }
 
@@ -101,10 +108,10 @@ bool csdDmp()
     m_eraseSize++;
 
     m_noSectors = sdCardCapacity(&m_csd);
+#if DEBUG
     cout << F("cardSize: ") << 0.000512 * m_noSectors;
     cout << F(" MB (MB = 1,000,000 bytes)\n");
     cout << F("sectors: ") << m_noSectors << endl;
-
     cout << F("flashEraseSize: ") << int(m_eraseSize) << F(" blocks\n");
     cout << F("eraseSingleBlock: ");
     if (eraseSingleBlock)
@@ -115,12 +122,14 @@ bool csdDmp()
     {
         cout << F("false\n");
     }
+#endif
     return true;
 }
 //------------------------------------------------------------------------------
 
 void printCardType()
 {
+#if DEBUG
     cout << F("\nCard type: ");
 
     switch (sd.card()->type())
@@ -147,6 +156,7 @@ void printCardType()
     default:
         cout << F("Unknown\n");
     }
+#endif
 }
 //------------------------------------------------------------------------------
 
@@ -160,6 +170,7 @@ bool mbrDmp()
         cout << F("\nread MBR failed.\n");
         return false;
     }
+#if DEBUG
     cout << F("\nSD Partition Table\n");
     cout << F("part,boot,bgnCHS[3],type,endCHS[3],start,length\n");
     for (uint8_t ip = 1; ip < 5; ip++)
@@ -188,6 +199,7 @@ bool mbrDmp()
     {
         cout << F("\nMBR not valid, assuming Super Floppy format.\n");
     }
+#endif
     return true;
 }
 //------------------------------------------------------------------------------
@@ -195,8 +207,6 @@ bool mbrDmp()
 void sdInfo()
 {
     uint32_t t = millis();
-
-    cout << F("------------------SD-------------------\n");
 
     printConfig(SD_CONFIG);
 
@@ -231,12 +241,11 @@ void sdInfo()
 
     cidDmp();
     csdDmp();
+#if DEBUG
     cout << F("\nOCR: ") << uppercase << showbase;
     cout << hex << m_ocr << dec << endl;
-
+#endif
     mbrDmp();
-
-    cout << F("---------------------------------------\n");
 }
 
 void dumpSdCardToSerial()
@@ -271,7 +280,7 @@ void setup()
     // initialize the digital pin as an output.
     pinMode(ledPin, OUTPUT);
 
-    pinMode(2, OUTPUT);  // frequency is kbytes/sec
+    pinMode(2, OUTPUT); // frequency is kbytes/sec
 
     Serial.begin(115200);
     // Wait for USB Serial
