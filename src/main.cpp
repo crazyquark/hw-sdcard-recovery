@@ -265,12 +265,12 @@ void dumpSdCardToSerial()
     const uint32_t noChunks = int(m_noSectors / chunkSize);
     const uint32_t lastChunk = m_noSectors % chunkSize;
 
-    for (uint32_t i = 0; i < noChunks; i += chunkSize)
+    for (uint32_t i = 0; i < noChunks; i ++)
     {
         digitalWrite(ledPin, HIGH); // set the LED on
 
         uint8_t buffer[512 * chunkSize];
-        sd.card()->readSectors(i, buffer, chunkSize);
+        sd.card()->readSectors(i * chunkSize, buffer, chunkSize);
 
         Serial.write(buffer, sizeof(buffer));
 
