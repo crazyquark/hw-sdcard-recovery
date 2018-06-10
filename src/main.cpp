@@ -1,9 +1,11 @@
-#include <Arduino.h>
-#include <SdFs.h>
-#include <FreeStack.h>
-
 // Disable debug info
 #define DEBUG 0
+
+#include <Arduino.h>
+#include <SdFs.h>
+#if DEBUG
+#include <FreeStack.h>
+#endif
 
 /*
   Set DISABLE_CS_PIN to disable a second SPI device.
@@ -227,8 +229,9 @@ void sdInfo()
         return;
     }
     t = millis() - t;
+#if DEBUG
     cout << F("init time: ") << t << " ms" << endl;
-
+#endif
     if (!sd.card()->readCID(&m_cid) ||
         !sd.card()->readCSD(&m_csd) ||
         !sd.card()->readOCR(&m_ocr))
@@ -250,8 +253,15 @@ void sdInfo()
 
 void dumpSdCardToSerial()
 {
+#if DEBUG
     cout << F("Sector to read: ") << m_noSectors << endl;
-    const int chunkSize = 420;
+#endif
+    // Send the reader how many bytes to expect
+    const uint32_t bytesToWrite = m_noSectors * 512;
+    const uint32_t chunkSize = 420;
+
+    Serial.write(bytesToWrite);
+
     for (uint32_t i = 0; i < m_noSectors; i += chunkSize)
     {
         digitalWrite(ledPin, HIGH); // set the LED on
@@ -263,12 +273,14 @@ void dumpSdCardToSerial()
 
         digitalWrite(ledPin, LOW); // set the LED off
 
+#if DEBUG
         cout << "Read " << i << "/" << m_noSectors << endl;
+#endif
     }
 
-    Serial.write(CTRL(D));
-
+#if DEBUG
     cout << F("Done!") << endl;
+#endif
 
     Serial.end();
 
@@ -295,8 +307,10 @@ void setup()
 
     sdInfo();
 
+#if DEBUG
     // Available memory
     cout << F("Free stack: ") << FreeStack() << endl;
+#endif
 
     dumpSdCardToSerial();
 }
