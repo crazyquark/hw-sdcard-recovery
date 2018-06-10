@@ -32,7 +32,7 @@ with open('sdcard.img', 'wb') as img:
 
             speed = round(float(bytesRead) / 1024.0 / float(currentTime - startTime), 2)
 
-            sys.stdout.write('Progress: ' + str(round(float(bytesRead) / float(dataLength), 2)) + ' % [' + str(speed) + 'KB/s]')
+            sys.stdout.write('Progress: ' + str(round(float(bytesRead) / float(dataLength) * 100, 2)) + ' % [' + str(speed) + 'KB/s]')
             sys.stdout.write('\r')
 
         if bytesRead != dataLength:
