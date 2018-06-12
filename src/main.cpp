@@ -312,10 +312,12 @@ void runServer()
 
         // Send raw sd card data
         cout << F("Reading ") << m_noSectors << F(" sectors\n");
-        for (uint32_t i = 0; i < m_noSectors; i++)
+        const uint32_t chunkSize = 10;
+        const uint32_t noChunks = m_noSectors / chunkSize;
+        for (uint32_t i = 0; i < noChunks; i++)
         {
-            uint8_t rawData[512];
-            sd.card()->readSectors(i, rawData, 1);
+            uint8_t rawData[512*10];
+            sd.card()->readSectors(i * noChunks, rawData, 10);
             server.write(rawData, sizeof(rawData));
 
             cout << F("Read ") << setprecision(4) << float(i) / float(m_noSectors) << F(" %\r");
